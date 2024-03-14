@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.cm as cm
 import torch
 import argparse
-
+import time 
 from src.matching import Matching
 from src.utils import make_matching_plot, read_image
 
@@ -26,16 +26,19 @@ class Matcher:
             }
         }
         self.matching = Matching(config).eval().to(self.device)
-        self.resizeWidth = 1024
+        self.resizeWidth = 1024 
         self.resizeHeight = 840
 
     def calculateSimilarity(self, filename1:str, filename2:str):
         image0, inp0, scales0 = read_image(filename1, self.device, [ self.resizeWidth,self.resizeHeight], 0, False)
         image1, inp1, scales1 = read_image(filename2, self.device, [ self.resizeWidth,self.resizeHeight], 0, False)
+
+        
         pred = self.matching({'image0': inp0, 'image1': inp1})
         pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
         kpts0, kpts1 = pred['keypoints0'], pred['keypoints1']
         matches, conf = pred['matches0'], pred['matching_scores0']
+        
         return (sum(conf)/self.nkeypoints)*5
 
 def main():
@@ -45,8 +48,14 @@ def main():
     args = parser.parse_args()
 
     matcher = Matcher()
+
+
+    start = time.time()
     similarity = matcher.calculateSimilarity(args.im1, args.im2)
     print("Similarity between the images:", similarity)
+    print(time.time() - start, " seconds")
+
+
 
 if __name__ == "__main__":
     main()
